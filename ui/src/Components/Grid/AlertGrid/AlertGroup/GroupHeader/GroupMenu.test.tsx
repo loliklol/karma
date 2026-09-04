@@ -184,6 +184,7 @@ const renderMenuContent = (group: APIAlertGroupT) => {
       afterClick={MockAfterClick}
       alertStore={alertStore}
       silenceFormStore={silenceFormStore}
+      onEvaClick={jest.fn()}
     />,
   );
 };

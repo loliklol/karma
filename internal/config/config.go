@@ -155,6 +155,20 @@ func SetupFlags(f *pflag.FlagSet) {
 	f.Int("ui.minimalGroupWidth", 420, "Minimal width for each alert group on the grid")
 	f.Int("ui.alertsPerGroup", 5, "Default number of alerts to show for each alert group")
 	f.String("ui.collapseGroups", "collapsedOnMobile", "Default state for alert groups")
+
+	f.String("persistence.dsn", "", "PostgreSQL DSN (required when eva.enabled is true)")
+	f.Int("persistence.maxOpenConns", 10, "PostgreSQL max open connections")
+
+	f.Bool("eva.enabled", false, "Enable EVA Team ticket integration")
+	f.String("eva.baseURL", "", "EVA API base URL")
+	f.String("eva.apiToken", "", "EVA API token")
+	f.String("eva.webBaseURL", "", "EVA web UI base URL for ticket links")
+	f.String("eva.taskURLTemplate", "{{ .WebBaseURL }}/task/{{ .Code }}", "Go template for EVA task URL")
+	f.Duration("eva.timeout", time.Second*15, "Timeout for EVA API requests")
+	f.String("eva.defaultTarget", "", "Default EVA target code for ticket creation")
+	f.StringSlice("eva.identityLabels", []string{"alertname"}, "Labels used to build ticket identity key")
+	f.String("eva.task.nameTemplate", "[{{ .Alertname }}]", "Go template for EVA task name")
+	f.String("eva.task.textTemplate", "Alert group created from karma.\n\n{{ range $k, $v := .Labels }}- {{ $k }}: {{ $v }}\n{{ end }}", "Go template for EVA task body")
 }
 
 func validateConfigFile(path string) error {
@@ -471,6 +485,75 @@ func (config *configSchema) Read(flags *pflag.FlagSet) (string, error) {
 		}
 	}
 
+	if config.Persistence.MaxOpenConns < 1 {
+		config.Persistence.MaxOpenConns = 10
+	}
+
+	if config.Eva.Enabled {
+		if config.Persistence.DSN == "" {
+			return "", errors.New("persistence.dsn is required when eva.enabled is true")
+		}
+		if config.Eva.BaseURL == "" {
+			return "", errors.New("eva.baseURL is required when eva.enabled is true")
+		}
+		if config.Eva.APIToken == "" {
+			return "", errors.New("eva.apiToken is required when eva.enabled is true")
+		}
+		if len(config.Eva.Targets) == 0 {
+			return "", errors.New("eva.targets must contain at least one target when eva.enabled is true")
+		}
+		seenTargets := map[string]struct{}{}
+		for i, t := range config.Eva.Targets {
+			if t.Code == "" {
+				return "", fmt.Errorf("eva.targets[%d].code is required", i)
+			}
+			if t.Label == "" {
+				config.Eva.Targets[i].Label = t.Code
+			}
+			if t.Kind == "" {
+				config.Eva.Targets[i].Kind = "project"
+			}
+			if !slices.Contains([]string{"project", "servicedesk"}, config.Eva.Targets[i].Kind) {
+				return "", fmt.Errorf("eva.targets[%d].kind must be 'project' or 'servicedesk'", i)
+			}
+			if _, dup := seenTargets[t.Code]; dup {
+				return "", fmt.Errorf("duplicate eva.targets code %q", t.Code)
+			}
+			seenTargets[t.Code] = struct{}{}
+		}
+		if config.Eva.DefaultTarget == "" {
+			config.Eva.DefaultTarget = config.Eva.Targets[0].Code
+		} else if _, ok := seenTargets[config.Eva.DefaultTarget]; !ok {
+			return "", fmt.Errorf("eva.defaultTarget %q is not in eva.targets", config.Eva.DefaultTarget)
+		}
+		for i, route := range config.Eva.Routes {
+			if route.Match.Label == "" || route.Match.Value == "" {
+				return "", fmt.Errorf("eva.routes[%d].match.label and value are required", i)
+			}
+			if route.Target == "" {
+				return "", fmt.Errorf("eva.routes[%d].target is required", i)
+			}
+			if _, ok := seenTargets[route.Target]; !ok {
+				return "", fmt.Errorf("eva.routes[%d].target %q is not in eva.targets", i, route.Target)
+			}
+		}
+		if len(config.Eva.IdentityLabels) == 0 {
+			config.Eva.IdentityLabels = []string{"alertname"}
+		}
+		if config.Eva.Timeout <= 0 {
+			config.Eva.Timeout = time.Second * 15
+		}
+		if config.Eva.TaskURLTemplate == "" {
+			config.Eva.TaskURLTemplate = "{{ .WebBaseURL }}/task/{{ .Code }}"
+		}
+		if config.Eva.Task.NameTemplate == "" {
+			config.Eva.Task.NameTemplate = "[{{ .Alertname }}]"
+		}
+		if config.Eva.Task.TextTemplate == "" {
+			config.Eva.Task.TextTemplate = "Alert group created from karma.\n"
+		}
+	}
+
 	// accept single Alertmanager server from flag/env if nothing is set yet
 	if len(config.Alertmanager.Servers) == 0 && config.Alertmanager.URI != "" {
 		config.Alertmanager.Servers = []AlertmanagerConfig{
@@ -498,6 +581,7 @@ func (config *configSchema) LogValues() {
 	// make a copy of our config so we can edit it
 	cfg := *config
 
+	cfg.Eva.APIToken = "***"
 	auth := make([]AuthenticationUser, 0, len(cfg.Authentication.BasicAuth.Users))
 	for _, u := range cfg.Authentication.BasicAuth.Users {
 		uu := AuthenticationUser{

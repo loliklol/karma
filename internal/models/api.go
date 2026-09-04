@@ -775,6 +775,29 @@ type Settings struct {
 	AnnotationsDefaultHidden bool                         `json:"annotationsDefaultHidden"`
 	AnnotationsAllowHTML     bool                         `json:"annotationsEnableHTML"`
 	HistoryEnabled           bool                         `json:"historyEnabled"`
+	Eva                      EvaSettings                  `json:"eva"`
+}
+
+// EvaTargetSettings is exported to the UI for the ticket target picker.
+type EvaTargetSettings struct {
+	Code  string `json:"code"`
+	Label string `json:"label"`
+	Kind  string `json:"kind"`
+}
+
+// EvaRouteSettings is exported so UI can preselect target from labels.
+type EvaRouteSettings struct {
+	Label  string `json:"label"`
+	Value  string `json:"value"`
+	Target string `json:"target"`
+}
+
+// EvaSettings exports EVA integration knobs needed by the UI.
+type EvaSettings struct {
+	DefaultTarget string              `json:"defaultTarget"`
+	Targets       []EvaTargetSettings `json:"targets"`
+	Routes        []EvaRouteSettings  `json:"routes"`
+	Enabled       bool                `json:"enabled"`
 }
 
 func (s Settings) MarshalJSONTo(enc *jsontext.Encoder) error {
@@ -839,6 +862,39 @@ func (s Settings) MarshalJSONTo(enc *jsontext.Encoder) error {
 	w.boolean(s.AnnotationsAllowHTML)
 	w.key("historyEnabled")
 	w.boolean(s.HistoryEnabled)
+	w.key("eva")
+	w.beginObject()
+	w.key("enabled")
+	w.boolean(s.Eva.Enabled)
+	w.key("defaultTarget")
+	w.str(s.Eva.DefaultTarget)
+	w.key("targets")
+	w.beginArray()
+	for _, t := range s.Eva.Targets {
+		w.beginObject()
+		w.key("code")
+		w.str(t.Code)
+		w.key("label")
+		w.str(t.Label)
+		w.key("kind")
+		w.str(t.Kind)
+		w.endObject()
+	}
+	w.endArray()
+	w.key("routes")
+	w.beginArray()
+	for _, r := range s.Eva.Routes {
+		w.beginObject()
+		w.key("label")
+		w.str(r.Label)
+		w.key("value")
+		w.str(r.Value)
+		w.key("target")
+		w.str(r.Target)
+		w.endObject()
+	}
+	w.endArray()
+	w.endObject()
 	w.endObject()
 	return w.err
 }
@@ -1024,6 +1080,39 @@ func (r AlertsResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
 	w.boolean(r.Settings.AnnotationsAllowHTML)
 	w.key("historyEnabled")
 	w.boolean(r.Settings.HistoryEnabled)
+	w.key("eva")
+	w.beginObject()
+	w.key("enabled")
+	w.boolean(r.Settings.Eva.Enabled)
+	w.key("defaultTarget")
+	w.str(r.Settings.Eva.DefaultTarget)
+	w.key("targets")
+	w.beginArray()
+	for _, t := range r.Settings.Eva.Targets {
+		w.beginObject()
+		w.key("code")
+		w.str(t.Code)
+		w.key("label")
+		w.str(t.Label)
+		w.key("kind")
+		w.str(t.Kind)
+		w.endObject()
+	}
+	w.endArray()
+	w.key("routes")
+	w.beginArray()
+	for _, route := range r.Settings.Eva.Routes {
+		w.beginObject()
+		w.key("label")
+		w.str(route.Label)
+		w.key("value")
+		w.str(route.Value)
+		w.key("target")
+		w.str(route.Target)
+		w.endObject()
+	}
+	w.endArray()
+	w.endObject()
 	w.endObject()
 	w.key("silences")
 	w.beginObject()

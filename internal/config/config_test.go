@@ -164,6 +164,29 @@ ui:
   collapseGroups: collapsedOnMobile
   multiGridLabel: ""
   multiGridSortReverse: false
+persistence:
+  dsn: ""
+  maxOpenConns: 10
+eva:
+  enabled: false
+  baseURL: ""
+  apiToken: ""
+  webBaseURL: ""
+  taskURLTemplate: '{{ .WebBaseURL }}/task/{{ .Code }}'
+  timeout: 15s
+  defaultTarget: ""
+  identityLabels:
+    - alertname
+  targets: []
+  routes: []
+  task:
+    nameTemplate: '[{{ .Alertname }}]'
+    textTemplate: |-
+      Alert group created from karma.
+
+      {{ range $k, $v := .Labels }}- {{ $k }}: {{ $v }}
+      {{ end }}
+    tags: []
 `
 
 	var buf bytes.Buffer

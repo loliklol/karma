@@ -8,40 +8,35 @@
 | Поле | Значение |
 |------|----------|
 | Repo | `github.com/loliklol/karma` (форк prymitive/karma) |
-| Branch design | `cursor/alert-history-eva-design-2bad` |
-| Режим | проектирование (код фич — после явного старта реализации) |
+| Branch | `cursor/alert-history-eva-design-2bad` |
+| Режим | реализация: EVA create ticket (срез B) |
 
-## Запрос (суть)
-
-Оценка репо + предложения: история алертов, EVA тикеты, пресеты окружений, strips UI.  
-Клиент: `https://github.com/raoptimus/evateamclient.go`. Пока не реализовывать.
-
-## ADR — зафиксировано
+## ADR
 
 | # | Решение |
 |---|---------|
-| БД | **PostgreSQL сразу** (SQLite не делаем) |
-| EVA | **Picker в UI**: project или Service Desk. `defaultTarget` + optional label routes как preselect. SD в либе = обычный project (`TaskCreate` + `parent`); отдельного ServiceDesk API нет |
-| Пресеты | **Shared team-wide с v1** (Postgres `ui_preset`), не personal localStorage first |
+| БД | PostgreSQL сразу |
+| EVA | Picker project/SD (`TaskCreate` + parent) |
+| Пресеты | Shared team-wide (ещё не в этом срезе) |
 
-## Артефакт
+## Текущий фокус
 
-`docs/proposals/2026-09-alert-ops-roadmap.md` — обновлён под ADR.
+**Создание тикета в EVA** — детальный срез + код.
 
-## Эпики / порядок
+Артефакты:
+- `docs/proposals/2026-09-eva-create-ticket.md` — детальный дизайн среза
+- `docs/proposals/2026-09-alert-ops-roadmap.md` — общий roadmap
+- `docs/CONFIGURATION.md` — секции `persistence` / `eva`
 
-- **D** strips (можно без БД)
-- **A** Postgres store — foundation
-- **C** shared presets (после A1)
-- **B** EVA picker + create/sync (после A1)
-- **E** аналитика
+Реализовано в коде (WIP push):
+- `internal/config` — `eva` + `persistence`
+- `internal/store` — TicketStore (memory + postgres)
+- `internal/eva` — identity/templates/service + client wrapper (`evateamclient.go` v1.5.3)
+- `cmd/karma` — `/eva/targets.json`, `/eva/tasks.json` GET/POST, wiring
+- UI — `Components/EvaTicket`, пункт меню группы
 
-Порядок: `D ∥ A → C∥events → B → E`
+Ещё не сделано в этом срезе: status sync, batch enrich alerts.json, `@eva_*` filters, badge на полоске, e2e с живым EVA/Postgres.
 
 ## Следующий ход
 
-Ждать старт реализации / какой эпик первым. Кандидаты:
-1. D1–D3 strips (быстрый UX)
-2. A1–A2 Postgres foundation (нужен для C/B)
-
-Мелочи при старте: коды проектов OPS/SD, force второго тикета, auth → `created_by`.
+Добить UI тесты / commit+push; потом sync статусов (B6) или badge.

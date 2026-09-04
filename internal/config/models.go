@@ -219,7 +219,56 @@ type configSchema struct {
 		DefaultAlertmanagers []string `yaml:"defaultAlertmanagers" koanf:"defaultAlertmanagers"`
 	} `yaml:"silenceForm" koanf:"silenceForm"`
 	// nolint: maligned
-	UI UIConfig
+	UI          UIConfig
+	Persistence PersistenceConfig `yaml:"persistence" koanf:"persistence"`
+	Eva         EvaConfig         `yaml:"eva" koanf:"eva"`
+}
+
+// PersistenceConfig holds PostgreSQL connection settings.
+type PersistenceConfig struct {
+	DSN          string `yaml:"dsn" koanf:"dsn"`
+	MaxOpenConns int    `yaml:"maxOpenConns" koanf:"maxOpenConns"`
+}
+
+// EvaTarget is an allowlisted EVA project / Service Desk destination.
+type EvaTarget struct {
+	Code  string `yaml:"code" koanf:"code" json:"code"`
+	Label string `yaml:"label" koanf:"label" json:"label"`
+	Kind  string `yaml:"kind" koanf:"kind" json:"kind"` // project | servicedesk
+}
+
+// EvaRoute optionally preselects a target from alert labels.
+type EvaRoute struct {
+	Match  EvaRouteMatch `yaml:"match" koanf:"match"`
+	Target string        `yaml:"target" koanf:"target"`
+}
+
+// EvaRouteMatch matches a single label name/value.
+type EvaRouteMatch struct {
+	Label string `yaml:"label" koanf:"label"`
+	Value string `yaml:"value" koanf:"value"`
+}
+
+// EvaTaskTemplates configures EVA task name/body/tags.
+type EvaTaskTemplates struct {
+	NameTemplate string   `yaml:"nameTemplate" koanf:"nameTemplate"`
+	TextTemplate string   `yaml:"textTemplate" koanf:"textTemplate"`
+	Tags         []string `yaml:"tags" koanf:"tags"`
+}
+
+// EvaConfig configures EVA Team ticket integration.
+type EvaConfig struct {
+	Enabled         bool             `yaml:"enabled" koanf:"enabled"`
+	BaseURL         string           `yaml:"baseURL" koanf:"baseURL"`
+	APIToken        string           `yaml:"apiToken" koanf:"apiToken"`
+	WebBaseURL      string           `yaml:"webBaseURL" koanf:"webBaseURL"`
+	TaskURLTemplate string           `yaml:"taskURLTemplate" koanf:"taskURLTemplate"`
+	Timeout         time.Duration    `yaml:"timeout" koanf:"timeout"`
+	DefaultTarget   string           `yaml:"defaultTarget" koanf:"defaultTarget"`
+	IdentityLabels  []string         `yaml:"identityLabels" koanf:"identityLabels"`
+	Targets         []EvaTarget      `yaml:"targets" koanf:"targets"`
+	Routes          []EvaRoute       `yaml:"routes" koanf:"routes"`
+	Task            EvaTaskTemplates `yaml:"task" koanf:"task"`
 }
 
 type UIConfig struct {

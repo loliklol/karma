@@ -11,6 +11,7 @@ import { faBars } from "@fortawesome/free-solid-svg-icons/faBars";
 import { faShareSquare } from "@fortawesome/free-solid-svg-icons/faShareSquare";
 import { faBellSlash } from "@fortawesome/free-solid-svg-icons/faBellSlash";
 import { faWrench } from "@fortawesome/free-solid-svg-icons/faWrench";
+import { faTicketAlt } from "@fortawesome/free-solid-svg-icons/faTicketAlt";
 
 import type { APIAlertGroupT, ReadOnly } from "Models/APITypes";
 import { FormatAlertsQ } from "Stores/AlertStore";
@@ -24,6 +25,7 @@ import { DropdownSlide } from "Components/Animations/DropdownSlide";
 import { FetchPauser } from "Components/FetchPauser";
 import { useOnClickOutside } from "Hooks/useOnClickOutside";
 import { MenuLink } from "Components/Grid/AlertGrid/AlertGroup/MenuLink";
+import { EvaTicketModal } from "Components/EvaTicket";
 
 const onSilenceClick = (
   alertStore: AlertStore,
@@ -60,6 +62,7 @@ const MenuContent: FC<{
   afterClick: () => void;
   alertStore: AlertStore;
   silenceFormStore: SilenceFormStore;
+  onEvaClick: () => void;
 }> = observer(
   ({
     x,
@@ -70,6 +73,7 @@ const MenuContent: FC<{
     afterClick,
     alertStore,
     silenceFormStore,
+    onEvaClick,
   }) => {
     const groupFilters = group.labels.map((label) =>
       FormatQuery(label.name, QueryOperators.Equal, label.value),
@@ -139,6 +143,17 @@ const MenuContent: FC<{
           >
             <FontAwesomeIcon icon={faBellSlash} /> Silence this group
           </div>
+          {alertStore.settings.values.eva.enabled ? (
+            <div
+              className="dropdown-item cursor-pointer"
+              onClick={() => {
+                onEvaClick();
+                afterClick();
+              }}
+            >
+              <FontAwesomeIcon icon={faTicketAlt} /> Create EVA ticket
+            </div>
+          ) : null}
         </div>
       </FetchPauser>
     );
@@ -153,6 +168,7 @@ const GroupMenu: FC<{
   setIsMenuOpen: (isOpen: boolean) => void;
 }> = ({ group, alertStore, silenceFormStore, themed, setIsMenuOpen }) => {
   const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [evaOpen, setEvaOpen] = useState<boolean>(false);
 
   const toggle = useCallback(() => {
     setIsMenuOpen(isHidden);
@@ -190,12 +206,19 @@ const GroupMenu: FC<{
           alertStore={alertStore}
           silenceFormStore={silenceFormStore}
           afterClick={hide}
+          onEvaClick={() => setEvaOpen(true)}
           x={x}
           y={y}
           floating={refs.setFloating}
           strategy={strategy}
         />
       </DropdownSlide>
+      <EvaTicketModal
+        group={group}
+        alertStore={alertStore}
+        isOpen={evaOpen}
+        toggleOpen={() => setEvaOpen(false)}
+      />
     </span>
   );
 };

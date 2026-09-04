@@ -860,6 +860,109 @@ history:
         X-Foo: bar
 ```
 
+### Persistence
+
+`persistence` section configures PostgreSQL used by EVA ticket mapping (and
+future shared presets / alert event history).
+
+Syntax:
+
+```YAML
+persistence:
+  dsn: string
+  maxOpenConns: integer
+```
+
+- `dsn` - PostgreSQL connection string, required when `eva.enabled` is `true`
+- `maxOpenConns` - connection pool size (default `10`)
+
+Example:
+
+```YAML
+persistence:
+  dsn: "postgres://karma:secret@db:5432/karma?sslmode=require"
+  maxOpenConns: 20
+```
+
+### EVA Team tickets
+
+`eva` section enables creating tasks in [EVA Team](https://eva.team) from alert
+groups. Uses [`github.com/raoptimus/evateamclient.go`](https://github.com/raoptimus/evateamclient.go).
+Service Desk destinations are ordinary EVA projects listed in `targets`.
+
+When enabled karma exposes:
+
+- `GET /eva/targets.json` — allowlisted targets for the UI picker
+- `POST /eva/tasks.json` — create a task (`groupId`, `target`, optional `force`)
+- `GET /eva/tasks.json?groupId=` — tickets linked to a group
+
+Syntax:
+
+```YAML
+eva:
+  enabled: bool
+  baseURL: string
+  apiToken: string
+  webBaseURL: string
+  taskURLTemplate: string
+  timeout: duration
+  defaultTarget: string
+  identityLabels: list of strings
+  targets:
+    - code: string
+      label: string
+      kind: project|servicedesk
+  routes:
+    - match:
+        label: string
+        value: string
+      target: string
+  task:
+    nameTemplate: string
+    textTemplate: string
+    tags: list of strings
+```
+
+- `enabled` — turn integration on (requires `persistence.dsn`, `baseURL`, `apiToken`, `targets`)
+- `targets` — allowlist shown in the create-ticket modal; `kind` is UI-only
+- `defaultTarget` — preselected target code
+- `routes` — optional label-based preselect override
+- `identityLabels` — labels hashed for open-ticket deduplication
+- `task.*Template` — Go `text/template` with `.Alertname`, `.Labels`, `.Receiver`, `.WebBaseURL`, `.Code`
+
+Example:
+
+```YAML
+persistence:
+  dsn: "postgres://karma:secret@db:5432/karma?sslmode=require"
+eva:
+  enabled: true
+  baseURL: https://api.eva.team
+  apiToken: "${EVA_TOKEN}"
+  webBaseURL: https://eva.example
+  defaultTarget: OPS
+  identityLabels: [alertname, cluster, service]
+  targets:
+    - code: OPS
+      label: Ops board
+      kind: project
+    - code: SD
+      label: Service Desk
+      kind: servicedesk
+  routes:
+    - match:
+        label: severity
+        value: critical
+      target: SD
+  task:
+    nameTemplate: '[{{ .Alertname }}] {{ index .Labels "cluster" }}'
+    textTemplate: |
+      Created from karma.
+      {{ range $k, $v := .Labels }}- {{ $k }}: {{ $v }}
+      {{ end }}
+    tags: [karma, alert]
+```
+
 ### Karma
 
 `karma` section allows configuring miscellaneous internal options.

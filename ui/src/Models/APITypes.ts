@@ -217,6 +217,12 @@ export interface APISettingsT {
   historyEnabled: boolean;
   gridGroupLimit: number;
   labels: APILabelsSettingsT;
+  eva: {
+    enabled: boolean;
+    defaultTarget: string;
+    targets: { code: string; label: string; kind: string }[];
+    routes: { label: string; value: string; target: string }[];
+  };
 }
 
 export interface APIAlertsResponseT {

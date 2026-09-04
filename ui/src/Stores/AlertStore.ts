@@ -406,6 +406,12 @@ class AlertStoreSettings {
     historyEnabled: true,
     gridGroupLimit: 40,
     labels: {},
+    eva: {
+      enabled: false,
+      defaultTarget: "",
+      targets: [] as { code: string; label: string; kind: string }[],
+      routes: [] as { label: string; value: string; target: string }[],
+    },
   };
 
   constructor() {

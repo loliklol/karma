@@ -81,6 +81,12 @@ const EmptyAPIResponse = (): APIAlertsResponseT => ({
     labels: {
       job: { isStatic: true, isValueOnly: false },
     },
+    eva: {
+      enabled: false,
+      defaultTarget: "",
+      targets: [],
+      routes: [],
+    },
   },
   authentication: {
     username: "",

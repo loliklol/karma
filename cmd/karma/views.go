@@ -158,6 +158,7 @@ func alerts(w http.ResponseWriter, r *http.Request) {
 		HistoryEnabled: config.Config.History.Enabled,
 		GridGroupLimit: config.Config.Grid.GroupLimit,
 		Labels:         models.LabelsSettings{},
+		Eva:            buildEvaSettings(),
 	}
 	resp.Authentication = models.AuthenticationInfo{
 		Enabled:  config.Config.Authentication.Enabled,

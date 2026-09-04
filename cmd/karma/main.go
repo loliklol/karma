@@ -164,6 +164,9 @@ func setupRouter(router *chi.Mux, historyPoller *historyPoller) {
 	router.Post(getViewURL("/history.json"), func(w http.ResponseWriter, r *http.Request) {
 		alertHistory(historyPoller, w, r)
 	})
+	router.Get(getViewURL("/eva/targets.json"), evaTargets)
+	router.Get(getViewURL("/eva/tasks.json"), evaListTasks)
+	router.Post(getViewURL("/eva/tasks.json"), evaCreateTask)
 
 	router.Get(getViewURL("/custom.css"), serveFileOr404(config.Config.Custom.CSS, "text/css"))
 	router.Get(getViewURL("/custom.js"), serveFileOr404(config.Config.Custom.JS, "application/javascript"))
@@ -312,6 +315,10 @@ func mainSetup(errorHandling pflag.ErrorHandling) (*chi.Mux, *historyPoller, err
 
 	err = setupUpstreams()
 	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = setupEva(); err != nil {
 		return nil, nil, err
 	}
 
